@@ -20,6 +20,17 @@ This project was built from scratch as a personal learning exercise in systems i
 - Adds custom NPCs, vendors, and world content authored directly in the game database
 - Ships a small custom WoW addon (Lua) to speed up in-game coordinate capture for content authoring
 
+## Screenshots
+
+**Custom NPC authored via database editing (Keira3), with custom model, vendor and gossip flags**
+![Custom NPC](images/custom-npc-alessandro.jpg)
+
+**Server info on login, confirming AzerothCore + AutoBalance + mod-playerbots (100 bots configured)**
+![Server boot info](images/server-boot-info.png)
+
+**AI-driven bot dialogue via mod-ollama-chat, staying fully in-character**
+![Bot AI conversation](images/bot-chat-ai.png)
+
 ## Engineering challenges & how they were solved
 
 This is the part I'm most proud of — the project involved real debugging across several layers of the stack, not just following a guide.
