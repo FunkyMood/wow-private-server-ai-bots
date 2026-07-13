@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: GPSCopy
+## Notes: Mostra le coordinate del giocatore in una finestra copiabile con Ctrl+C
+## Author: Custom
+## Version: 1.0
+
+GPSCopy.lua
