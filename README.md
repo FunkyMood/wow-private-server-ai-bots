@@ -17,19 +17,21 @@ This project was built from scratch as a personal learning exercise in systems i
 
 - Runs a fully functional WotLK 3.3.5a server with up to 200 concurrent AI-driven bots (via [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots)) that level, quest, and group autonomously
 - Integrates a **local LLM** ([mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat)) so bots respond to players with dynamically generated, personality-driven dialogue instead of static text
+- Ships [mod-arac](https://github.com/azerothcore/mod-arac) (All Races All Classes), removing race/class creation restrictions server-wide via DBC + SQL patches, no core recompilation required
 - Adds custom NPCs, vendors, and world content authored directly in the game database
+- Supports multiplayer over both LAN and Tailscale VPN, with realm addressing reconfigured for each connection scenario
 - Ships a small custom WoW addon (Lua) to speed up in-game coordinate capture for content authoring
 
 ## Screenshots
 
 **Custom NPC authored via database editing (Keira3), with custom model, vendor and gossip flags**
-![Custom NPC](images/custom-npc-alessandro.jpg)
+![Custom NPC](screenshots/custom-npc-alessandro.jpg)
 
 **Server info on login, confirming AzerothCore + AutoBalance + mod-playerbots (100 bots configured)**
-![Server boot info](images/server-boot-info.png)
+![Server boot info](screenshots/server-boot-info.png)
 
 **AI-driven bot dialogue via mod-ollama-chat, staying fully in-character**
-![Bot AI conversation](images/bot-chat-ai.png)
+![Bot AI conversation](screenshots/bot-chat-ai.png)
 
 ## Engineering challenges & how they were solved
 
@@ -47,8 +49,13 @@ Benchmarked three local LLMs (Mistral 7B, Qwen3 8B, Qwen 3.5 9B) against an 8GB 
 ### 4. Iterative prompt engineering to fix real LLM failure modes
 The LLM integration initially exhibited several failure modes typical of small (7-8B) models: breaking character to talk "as a gamer" instead of a world resident, hallucinating in-game lore/locations, forgetting to stay on a new topic after a prior conversation, and inconsistent language switching. Fixed through a structured rewrite of the system prompt and chat templates — including deliberately duplicating key instructions closer to the generation point to exploit the model's recency bias, and restructuring conversation history formatting to clearly separate "past" from "current" context.
 
+A subtler failure mode surfaced later: the model correctly recalled prior conversation context but then failed to disengage from it, forcing an old topic back into unrelated new messages. Fixed by adding explicit visual delimiters between "past" and "current" context in the history template, and moving the topic-switching instruction to sit immediately adjacent to the new player message rather than upfront in the system prompt — again leaning on the model's recency bias rather than a single early instruction.
+
 ### 5. Legacy client scripting under a deprecated API surface
 Wrote a small Lua addon for the 2010-era WoW client to streamline in-game coordinate capture. First attempt failed because it used a modern `CreateFrame` template (`BasicFrameTemplate`) that doesn't exist in this client version. Rewrote using native `SetBackdrop` calls, then further reworked the event hook from a specific chat event type to a more robust `AddMessage` hook after the initial event type proved unreliable for parsing server-side GM command output.
+
+### 6. Patching a read-only Docker volume without rebuilding the image
+Needed to overwrite client data files (DBC) living inside a Docker named volume mounted read-only by design (`ac-client-data:/azerothcore/env/dist/data/:ro`), to prevent accidental corruption of shared game data. Solved by spinning up a disposable container that mounts the same named volume read-write alongside the source files, performs the copy, and exits — no changes to the running service's Compose definition were required. Also worked around a recurring Git-Bash-on-Windows path-mangling issue (`MSYS_NO_PATHCONV=1`) when passing Unix-style paths through to `docker exec`/`docker cp`.
 
 ## Custom Addon: GPSCopy
 
