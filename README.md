@@ -18,6 +18,7 @@ This project was built from scratch as a personal learning exercise in systems i
 - Runs a fully functional WotLK 3.3.5a server with up to 200 concurrent AI-driven bots (via [mod-playerbots](https://github.com/mod-playerbots/mod-playerbots)) that level, quest, and group autonomously
 - Integrates a **local LLM** ([mod-ollama-chat](https://github.com/DustinHendrickson/mod-ollama-chat)) so bots respond to players with dynamically generated, personality-driven dialogue instead of static text
 - Ships [mod-arac](https://github.com/azerothcore/mod-arac) (All Races All Classes), removing race/class creation restrictions server-wide via DBC + SQL patches, no core recompilation required
+- Gives players per-character control over their own XP rate ([mod-individual-xp](https://github.com/azerothcore/mod-individual-xp) + [mod-setxpbar](https://github.com/brian8544/mod-setxpbar) for a one-click UI on top of it), independent of the server-wide rate
 - Adds custom NPCs, vendors, and world content authored directly in the game database
 - Supports multiplayer over both LAN and Tailscale VPN, with realm addressing reconfigured for each connection scenario
 - Ships a small custom WoW addon (Lua) to speed up in-game coordinate capture for content authoring
@@ -56,6 +57,9 @@ Wrote a small Lua addon for the 2010-era WoW client to streamline in-game coordi
 
 ### 6. Patching a read-only Docker volume without rebuilding the image
 Needed to overwrite client data files (DBC) living inside a Docker named volume mounted read-only by design (`ac-client-data:/azerothcore/env/dist/data/:ro`), to prevent accidental corruption of shared game data. Solved by spinning up a disposable container that mounts the same named volume read-write alongside the source files, performs the copy, and exits — no changes to the running service's Compose definition were required. Also worked around a recurring Git-Bash-on-Windows path-mangling issue (`MSYS_NO_PATHCONV=1`) when passing Unix-style paths through to `docker exec`/`docker cp`.
+
+### 7. Preventing a known crash-loop before it happened
+Research turned up a documented issue where combining a module with the Playerbot fork causes the worldserver to crash-loop on startup, traced to the Docker DB-import step silently skipping the module's SQL files. Rather than hitting the crash and debugging it after the fact, pre-imported the module's SQL manually against the `characters` database before the first full startup, confirming success by checking for the expected table before proceeding — avoiding the failure mode entirely instead of reacting to it.
 
 ## Custom Addon: GPSCopy
 
