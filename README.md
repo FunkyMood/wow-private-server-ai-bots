@@ -20,6 +20,7 @@ This project was built from scratch as a personal learning exercise in systems i
 - Ships [mod-arac](https://github.com/azerothcore/mod-arac) (All Races All Classes), removing race/class creation restrictions server-wide via DBC + SQL patches, no core recompilation required
 - Gives players per-character control over their own XP rate ([mod-individual-xp](https://github.com/azerothcore/mod-individual-xp) + [mod-setxpbar](https://github.com/brian8544/mod-setxpbar) for a one-click UI on top of it), independent of the server-wide rate
 - Adds custom NPCs, vendors, and world content authored directly in the game database
+- Supports a client-side HD visual overhaul (upscaled textures, higher-poly models, DXVK DirectX9→Vulkan translation) running alongside the server-side ARAC patch without conflict
 - Supports multiplayer over both LAN and Tailscale VPN, with realm addressing reconfigured for each connection scenario
 - Ships a small custom WoW addon (Lua) to speed up in-game coordinate capture for content authoring
 
@@ -60,6 +61,11 @@ Needed to overwrite client data files (DBC) living inside a Docker named volume 
 
 ### 7. Preventing a known crash-loop before it happened
 Research turned up a documented issue where combining a module with the Playerbot fork causes the worldserver to crash-loop on startup, traced to the Docker DB-import step silently skipping the module's SQL files. Rather than hitting the crash and debugging it after the fact, pre-imported the module's SQL manually against the `characters` database before the first full startup, confirming success by checking for the expected table before proceeding — avoiding the failure mode entirely instead of reacting to it.
+
+### 8. Resolving a silent patch-priority conflict between two independent client mods
+Both the ARAC client patch and a separately-sourced HD texture/model overhaul use WoW's alphabetically-ordered MPQ patch-loading system, and both happened to claim the same filename slot. Rather than blindly overwriting one, inspected the existing `Patch-*.MPQ` sequence first and reassigned ARAC to an unused, later letter — guaranteeing it loads last and always wins on the specific DBC files it touches, while leaving the HD patch's own content untouched. Also diagnosed an unrelated legacy-app quirk on the same client: a bundled patch-configuration utility became unresponsive to dropdown input only, consistent with a DPI-scaling mismatch on a high-resolution display for an old, non-DPI-aware 32-bit executable.
+
+Separately, traced an unexpected "map fully revealed, no fog of war" behavior back to a bundled third-party addon (Mapster) shipped inside the HD client package rather than a server-side or core client setting, by cross-referencing the addon folder names captured during download against known addon functionality — confirming the root cause before touching any configuration.
 
 ## Custom Addon: GPSCopy
 
